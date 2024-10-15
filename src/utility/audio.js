@@ -1,51 +1,13 @@
-import { AudioPlayerStatus, NoSubscriberBehavior, VoiceConnectionStatus, createAudioPlayer, entersState, joinVoiceChannel } from "@discordjs/voice";
+import { AudioPlayerStatus, VoiceConnectionStatus, createAudioPlayer, createAudioResource, entersState, joinVoiceChannel } from "@discordjs/voice";
 
-function audio() {
-    const player = createAudioPlayer({
-        behaviors: {
-            noSubscriber: NoSubscriberBehavior.Play,
-            maxMissedFrames: Math.round(maxTransmissionGap / 20),
-        },
-    });
-
-    player.play(
-		createAudioResource(
-			new prism.FFmpeg({
-				args: [
-					'-analyzeduration',
-					'0',
-					'-loglevel',
-					'0',
-					'-f',
-					type,
-					'-i',
-					type === 'dshow' ? `audio=${device}` : device,
-					'-acodec',
-					'libopus',
-					'-f',
-					'opus',
-					'-ar',
-					'48000',
-					'-ac',
-					'2',
-				],
-			}),
-			{
-				inputType: StreamType.OggOpus,
-			},
-		),
-	);
-
-	console.log('Attached recorder - ready to go!');
-
-    player.on('stateChange', (oldState, newState) => {
-        if (oldState.status === AudioPlayerStatus.Idle && newState.status === AudioPlayerStatus.Playing) {
-            console.log('Playing audio output on audio player');
-        } else if (newState.status === AudioPlayerStatus.Idle) {
-            console.log('Playback has stopped. Attempting to restart.');
-            attachRecorder();
-        }
-    });
+function audio(path, connection) {
+    const player = createAudioPlayer();
+	const resource = createAudioResource(path);
+	player.play(resource)
+	connection.subscribe(player)
+	player.on(AudioPlayerStatus.Idle, () => {
+		connection.destroy();
+	})
 }
 
 async function connectToChannel(channel) {
